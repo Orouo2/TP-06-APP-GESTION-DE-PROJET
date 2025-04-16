@@ -1,309 +1,62 @@
 <?php
 
-namespace App\Entity;
+namespace App\Form\Type;
 
-use App\Repository\UserRepository;
-use Doctrine\Common\Collections\ArrayCollection;
-use Doctrine\Common\Collections\Collection;
-use Doctrine\ORM\Mapping as ORM;
-use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
-use Symfony\Component\Security\Core\User\UserInterface;
+use App\Entity\User;
+use Symfony\Bundle\SecurityBundle\Security;
+use Symfony\Component\Form\AbstractType;
+use Symfony\Component\Form\Extension\Core\Type\EmailType;
+use Symfony\Component\Form\Extension\Core\Type\SubmitType;
+use Symfony\Component\Form\Extension\Core\Type\TextType;
+use Symfony\Component\Form\FormBuilderInterface;
+use Symfony\Component\OptionsResolver\OptionsResolver;
 
-#[ORM\Entity(repositoryClass: UserRepository::class)]
-#[ORM\UniqueConstraint(name: 'UNIQ_IDENTIFIER_USERNAME', fields: ['username'])]
-class User implements UserInterface, PasswordAuthenticatedUserInterface, \Stringable
+class UserType extends AbstractType
 {
-    #[ORM\Id]
-    #[ORM\GeneratedValue]
-    #[ORM\Column]
-    private ?int $id = null;
-
-    #[ORM\Column(length: 180)]
-    private ?string $username = null;
-
-    /**
-     * @var list<string> The user roles
-     */
-    #[ORM\Column]
-    private array $roles = [];
-
-    /**
-     * @var string The hashed password
-     */
-    #[ORM\Column]
-    private ?string $password = null;
-
-    #[ORM\Column(length: 255, nullable: true)]
-    private ?string $firstname = null;
-
-    #[ORM\Column(length: 255, nullable: true)]
-    private ?string $lastName = null;
-
-    /**
-     * @var Collection<int, Project>
-     */
-    #[ORM\OneToMany(targetEntity: Project::class, mappedBy: 'leadUser')]
-    private Collection $leadedProjects;
-
-    /**
-     * @var Collection<int, Project>
-     */
-    #[ORM\ManyToMany(targetEntity: Project::class, mappedBy: 'members')]
-    private Collection $projects;
-
-    /**
-     * @var Collection<int, Issue>
-     */
-    #[ORM\OneToMany(targetEntity: Issue::class, mappedBy: 'assignee')]
-    private Collection $assingedIssues;
-
-    /**
-     * @var Collection<int, Issue>
-     */
-    #[ORM\OneToMany(targetEntity: Issue::class, mappedBy: 'reporter')]
-    private Collection $reportedIssues;
-
-    #[ORM\ManyToOne]
-    private ?Project $selectedProject = null;
-
-    public function __construct()
-    {
-        $this->leadedProjects = new ArrayCollection();
-        $this->projects = new ArrayCollection();
-        $this->assingedIssues = new ArrayCollection();
-        $this->reportedIssues = new ArrayCollection();
+    public function __construct(
+        private readonly Security $security
+    ){
     }
 
-    public function getId(): ?int
+    public function buildForm(FormBuilderInterface $builder, array $options): void
     {
-        return $this->id;
-    }
+        /** @var User $connectedUser */
+        $connectedUser = $this->security->getUser();
 
-    public function getUsername(): ?string
-    {
-        return $this->username;
-    }
+        $disabled = false;
 
-    public function setUsername(string $username): static
-    {
-        $this->username = $username;
+        /** @var User $user */
+        $user = $options['data'];
 
-        return $this;
-    }
-
-    /**
-     * A visual identifier that represents this user.
-     *
-     * @see UserInterface
-     */
-    public function getUserIdentifier(): string
-    {
-        return (string) $this->username;
-    }
-
-    /**
-     * @see UserInterface
-     *
-     * @return list<string>
-     */
-    public function getRoles(): array
-    {
-        $roles = $this->roles;
-        // guarantee every user at least has ROLE_USER
-        $roles[] = 'ROLE_USER';
-
-        return array_unique($roles);
-    }
-
-    /**
-     * @param list<string> $roles
-     */
-    public function setRoles(array $roles): static
-    {
-        $this->roles = $roles;
-
-        return $this;
-    }
-
-    /**
-     * @see PasswordAuthenticatedUserInterface
-     */
-    public function getPassword(): string
-    {
-        return $this->password;
-    }
-
-    public function setPassword(string $password): static
-    {
-        $this->password = $password;
-
-        return $this;
-    }
-
-    /**
-     * @see UserInterface
-     */
-    public function eraseCredentials(): void
-    {
-        // If you store any temporary, sensitive data on the user, clear it here
-        // $this->plainPassword = null;
-    }
-
-    public function __toString(): string
-    {
-        return $this->username;
-    }
-
-    public function getFirstname(): ?string
-    {
-        return $this->firstname;
-    }
-
-    public function setFirstname(?string $firstname): static
-    {
-        $this->firstname = $firstname;
-
-        return $this;
-    }
-
-    public function getLastName(): ?string
-    {
-        return $this->lastName;
-    }
-
-    public function setLastName(?string $lastName): static
-    {
-        $this->lastName = $lastName;
-
-        return $this;
-    }
-
-    /**
-     * @return Collection<int, Project>
-     */
-    public function getLeadedProjects(): Collection
-    {
-        return $this->leadedProjects;
-    }
-
-    public function addLeadedProject(Project $leadedProject): static
-    {
-        if (!$this->leadedProjects->contains($leadedProject)) {
-            $this->leadedProjects->add($leadedProject);
-            $leadedProject->setLeadUser($this);
+        if ($user->getId() !== $connectedUser->getId()) {
+            $disabled = true;
         }
 
-        return $this;
-    }
+        $builder
+            ->add('email', EmailType::class, [
+                'disabled' => $disabled,
+                'label' => 'Adresse e-mail'
+            ])
+            ->add('firstName', TextType::class, [
+                'disabled' => $disabled,
+                'label' => 'Prénom'
+            ])
+            ->add('lastName', TextType::class, [
+                'disabled' => $disabled,
+                'label' => 'Nom'
+            ]);
 
-    public function removeLeadedProject(Project $leadedProject): static
-    {
-        if ($this->leadedProjects->removeElement($leadedProject)) {
-            // set the owning side to null (unless already changed)
-            if ($leadedProject->getLeadUser() === $this) {
-                $leadedProject->setLeadUser(null);
-            }
+        if (!$disabled) {
+            $builder->add('submit', SubmitType::class, [
+                'label' => 'Enregistrer'
+            ]);
         }
-
-        return $this;
     }
 
-    /**
-     * @return Collection<int, Project>
-     */
-    public function getProjects(): Collection
+    public function configureOptions(OptionsResolver $resolver): void
     {
-        return $this->projects;
-    }
-
-    public function addProject(Project $project): static
-    {
-        if (!$this->projects->contains($project)) {
-            $this->projects->add($project);
-            $project->addMember($this);
-        }
-
-        return $this;
-    }
-
-    public function removeProject(Project $project): static
-    {
-        if ($this->projects->removeElement($project)) {
-            $project->removeMember($this);
-        }
-
-        return $this;
-    }
-
-    /**
-     * @return Collection<int, Issue>
-     */
-    public function getAssingedIssues(): Collection
-    {
-        return $this->assingedIssues;
-    }
-
-    public function addAssingedIssue(Issue $assingedIssue): static
-    {
-        if (!$this->assingedIssues->contains($assingedIssue)) {
-            $this->assingedIssues->add($assingedIssue);
-            $assingedIssue->setAssignee($this);
-        }
-
-        return $this;
-    }
-
-    public function removeAssingedIssue(Issue $assingedIssue): static
-    {
-        if ($this->assingedIssues->removeElement($assingedIssue)) {
-            // set the owning side to null (unless already changed)
-            if ($assingedIssue->getAssignee() === $this) {
-                $assingedIssue->setAssignee(null);
-            }
-        }
-
-        return $this;
-    }
-
-    /**
-     * @return Collection<int, Issue>
-     */
-    public function getReportedIssues(): Collection
-    {
-        return $this->reportedIssues;
-    }
-
-    public function addReportedIssue(Issue $reportedIssue): static
-    {
-        if (!$this->reportedIssues->contains($reportedIssue)) {
-            $this->reportedIssues->add($reportedIssue);
-            $reportedIssue->setReporter($this);
-        }
-
-        return $this;
-    }
-
-    public function removeReportedIssue(Issue $reportedIssue): static
-    {
-        if ($this->reportedIssues->removeElement($reportedIssue)) {
-            // set the owning side to null (unless already changed)
-            if ($reportedIssue->getReporter() === $this) {
-                $reportedIssue->setReporter(null);
-            }
-        }
-
-        return $this;
-    }
-
-    public function getSelectedProject(): ?Project
-    {
-        return $this->selectedProject;
-    }
-
-    public function setSelectedProject(?Project $selectedProject): static
-    {
-        $this->selectedProject = $selectedProject;
-
-        return $this;
+        $resolver->setDefaults([
+            'data_class' => User::class,
+        ]);
     }
 }
