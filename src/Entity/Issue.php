@@ -15,7 +15,8 @@ use Symfony\Component\Validator\Constraints as Assert;
 #[ORM\HasLifecycleCallbacks]
 class Issue
 {
-    #[ORM\Id, ORM\Column]
+    #[ORM\Id]
+    #[ORM\Column(length: 255)]
     private ?string $id = null;
 
     #[ORM\ManyToOne(inversedBy: 'issues')]

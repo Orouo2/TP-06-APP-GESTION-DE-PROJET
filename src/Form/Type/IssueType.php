@@ -20,7 +20,7 @@ use Symfony\Component\OptionsResolver\OptionsResolver;
 class IssueType extends AbstractType
 {
     public function __construct(
-
+        private readonly UserService $userService,
         private readonly Security $security
     )
     {

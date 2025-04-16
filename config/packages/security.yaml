@@ -1,33 +1,35 @@
 security:
     password_hashers:
         Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface: 'auto'
-
     providers:
         app_user_provider:
             entity:
                 class: App\Entity\User
-                property: username    
-
+                property: email
     firewalls:
         dev:
             pattern: ^/(_(profiler|wdt)|css|images|js)/
             security: false
-
         main:
             form_login:
-                check_path: login_index
-                login_path: login_index
-
-            logout:
-                target: login_index
+                check_path: security_login
+                enable_csrf: true
+                login_path: security_login
 
             lazy: true
+
             provider: app_user_provider
+
+            switch_user: true
+
+            logout:
+                path: security_logout
+                target: /
 
     access_control:
         - { path: ^/login, roles: PUBLIC_ACCESS }
-        - { path: ^/register, roles: PUBLIC_ACCESS }
-        - { path: ^/logout, roles: ROLE_USER }
+        - { path: ^/signup, roles: PUBLIC_ACCESS }
+        - { path: ^/admin, roles: ROLE_ADMIN }
         - { path: ^/, roles: ROLE_USER }
 
 when@test:

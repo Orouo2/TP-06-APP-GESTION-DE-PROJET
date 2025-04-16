@@ -15,7 +15,7 @@ class IssueService
     public function __construct(
         private readonly IssueRepository $issueRepo,
         private readonly Security $security,
-        
+        private readonly WorkflowInterface $issueStatusesStateMachine
     ) {
     }
 

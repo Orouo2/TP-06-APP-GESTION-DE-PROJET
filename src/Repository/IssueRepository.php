@@ -21,28 +21,19 @@ class IssueRepository extends ServiceEntityRepository
         parent::__construct($registry, Issue::class);
     }
 
-    //    /**
-    //     * @return Issue[] Returns an array of Issue objects
-    //     */
-    //    public function findByExampleField($value): array
-    //    {
-    //        return $this->createQueryBuilder('i')
-    //            ->andWhere('i.exampleField = :val')
-    //            ->setParameter('val', $value)
-    //            ->orderBy('i.id', 'ASC')
-    //            ->setMaxResults(10)
-    //            ->getQuery()
-    //            ->getResult()
-    //        ;
-    //    }
+    public function findByQuery(string $query): array
+    {
+        $qb = $this
+            ->createQueryBuilder('i');
 
-    //    public function findOneBySomeField($value): ?Issue
-    //    {
-    //        return $this->createQueryBuilder('i')
-    //            ->andWhere('i.exampleField = :val')
-    //            ->setParameter('val', $value)
-    //            ->getQuery()
-    //            ->getOneOrNullResult()
-    //        ;
-    //    }
+        $qb
+            ->select('i.id', 'i.summary')
+            ->where($qb->expr()->like('i.id', ':query'))
+            ->orWhere($qb->expr()->like('i.summary', ':query'))
+            ->setParameter('query', '%'.$query .'%');
+
+        return $qb
+            ->getQuery()
+            ->getArrayResult();
+    }
 }
