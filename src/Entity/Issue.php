@@ -2,47 +2,53 @@
 
 namespace App\Entity;
 
+use App\Enum\IssueStatus;
+use App\Enum\IssueType;
 use App\Repository\IssueRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: IssueRepository::class)]
+#[ORM\HasLifecycleCallbacks]
 class Issue
 {
-    #[ORM\Id]
-    #[ORM\GeneratedValue]
-    #[ORM\Column]
-    private ?int $id = null;
+    #[ORM\Id, ORM\Column]
+    private ?string $id = null;
 
     #[ORM\ManyToOne(inversedBy: 'issues')]
     #[ORM\JoinColumn(nullable: false)]
     private ?Project $project = null;
 
-    #[ORM\Column(type: Types::SMALLINT)]
-    private ?int $type = null;
+    #[ORM\Column]
+    private ?IssueType $type = IssueType::BUG;
 
-    #[ORM\Column(length: 100)]
+    #[ORM\Column]
+    private ?IssueStatus $status = IssueStatus::NEW;
+
+    #[ORM\Column(length: 255)]
+    #[Assert\Length(min: 3, max: 255)]
+    #[Assert\NotBlank]
     private ?string $summary = null;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
     private ?string $description = null;
 
     #[ORM\Column(nullable: true)]
-    private ?int $storyPintEstimate = null;
+    private ?int $storyPointEstimate = null;
 
-    #[ORM\ManyToOne(inversedBy: 'assingedIssues')]
+    #[ORM\ManyToOne(inversedBy: 'assignedIssues')]
+    #[Assert\NotNull]
     private ?User $assignee = null;
 
     #[ORM\ManyToOne(inversedBy: 'reportedIssues')]
     #[ORM\JoinColumn(nullable: false)]
+    #[Assert\NotNull]
     private ?User $reporter = null;
 
-    /**
-     * @var Collection<int, Attachment>
-     */
-    #[ORM\OneToMany(targetEntity: Attachment::class, mappedBy: 'issue')]
+    #[ORM\OneToMany(mappedBy: 'issue', targetEntity: Attachment::class, orphanRemoval: true)]
     private Collection $attachments;
 
     public function __construct()
@@ -50,7 +56,15 @@ class Issue
         $this->attachments = new ArrayCollection();
     }
 
-    public function getId(): ?int
+    #[ORM\PrePersist]
+    public function setIdValue(): void
+    {
+        if ($this->project) {
+            $this->id = $this->project->getKey().'-'.$this->project->getIssues()->count() + 1;
+        }
+    }
+
+    public function getId(): ?string
     {
         return $this->id;
     }
@@ -67,14 +81,38 @@ class Issue
         return $this;
     }
 
-    public function getType(): ?int
+    public function getType(): ?IssueType
     {
         return $this->type;
     }
 
-    public function setType(int $type): static
+    public function setType(?IssueType $type): self
     {
         $this->type = $type;
+
+        return $this;
+    }
+
+    public function getStatus(): ?IssueStatus
+    {
+        return $this->status;
+    }
+
+    public function setStatus(?IssueStatus $status): self
+    {
+        $this->status = $status;
+
+        return $this;
+    }
+
+    public function getStatusMarking(): string
+    {
+        return $this->status->workflowLabel();
+    }
+
+    public function setStatusMarking(string $statusMarking): self
+    {
+        $this->status = IssueStatus::fromWorkflowLabel($statusMarking);
 
         return $this;
     }
@@ -103,14 +141,14 @@ class Issue
         return $this;
     }
 
-    public function getStoryPintEstimate(): ?int
+    public function getStoryPointEstimate(): ?int
     {
-        return $this->storyPintEstimate;
+        return $this->storyPointEstimate;
     }
 
-    public function setStoryPintEstimate(?int $storyPintEstimate): static
+    public function setStoryPointEstimate(?int $storyPointEstimate): static
     {
-        $this->storyPintEstimate = $storyPintEstimate;
+        $this->storyPointEstimate = $storyPointEstimate;
 
         return $this;
     }
