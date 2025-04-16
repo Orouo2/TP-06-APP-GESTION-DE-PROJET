@@ -3,21 +3,23 @@
 namespace App\Twig\Components;
 
 use App\Entity\Project;
-use Doctrine\ORM\EntityManagerInterface;
 use App\Form\Type\ProjectType;
+use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Form\FormInterface;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\UX\LiveComponent\Attribute\AsLiveComponent;
-use Symfony\UX\LiveComponent\Attribute\LiveProp;
 use Symfony\UX\LiveComponent\Attribute\LiveAction;
+use Symfony\UX\LiveComponent\Attribute\LiveProp;
+use Symfony\UX\LiveComponent\ComponentToolsTrait;
 use Symfony\UX\LiveComponent\ComponentWithFormTrait;
 use Symfony\UX\LiveComponent\DefaultActionTrait;
 use Symfony\UX\LiveComponent\ValidatableComponentTrait;
-use Symfony\Component\HttpFoundation\Response;
 
 #[AsLiveComponent]
 class ProjectForm extends AbstractController
 {
+    use ComponentToolsTrait;
     use ComponentWithFormTrait;
     use DefaultActionTrait;
     use ValidatableComponentTrait;
@@ -27,7 +29,9 @@ class ProjectForm extends AbstractController
 
     protected function instantiateForm(): FormInterface
     {
-        $this->initialFormData = new Project();
+        $project = new Project();
+
+        $this->initialFormData = $project;
 
         return $this->createForm(ProjectType::class, $this->initialFormData);
     }
@@ -42,11 +46,13 @@ class ProjectForm extends AbstractController
         /** @var Project $project */
         $project = $this->getForm()->getData();
 
+        $project->setLead($this->getUser());
+
         $em->persist($project);
         $em->flush();
 
         return $this->redirectToRoute('project_show', [
-            'keyCode' => $project->getKeyCode(),
+            'key' => $project->getKey(),
         ]);
     }
 }

@@ -1,20 +1,18 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Hello ProjectController!{% endblock %}
+{% block title %}Projets{% endblock %}
 
 {% block body %}
-<style>
-    .example-wrapper { margin: 1em auto; max-width: 800px; width: 95%; font: 18px/1.5 sans-serif; }
-    .example-wrapper code { background: #F5F5F5; padding: 2px 6px; }
-</style>
+    <div class="container mt-3">
 
-<div class="example-wrapper">
-    <h1>Hello {{ controller_name }}! ✅</h1>
+        {% include 'breadcrumb.html.twig' with { breadcrumbs: ['Projets'] } %}
 
-    This friendly message is coming from:
-    <ul>
-        <li>Your controller at <code>/app/src/Controller/ProjectController.php</code></li>
-        <li>Your template at <code>/app/templates/project/index.html.twig</code></li>
-    </ul>
-</div>
+        <div class="row">
+            <div class="col">
+                {{ component('ProjectList', {
+                    projects: projects
+                }) }}
+            </div>
+        </div>
+    </div>
 {% endblock %}

@@ -6,45 +6,39 @@ use App\Repository\ProjectRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
 use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: ProjectRepository::class)]
+#[UniqueEntity('key')]
 class Project
 {
-    #[ORM\Id]
-    #[ORM\GeneratedValue]
-    #[ORM\Column]
+    #[ORM\Id, ORM\Column, ORM\GeneratedValue]
     private ?int $id = null;
 
-    #[Assert\NotBlank]
     #[ORM\Column(length: 255)]
+    #[Assert\NotBlank]
     private ?string $name = null;
 
+    #[Assert\Length(min: 2, max: 10)]
     #[Assert\NotBlank]
-    #[Assert\Length(min: 2, max: 5)]
-    #[ORM\Column(length: 5)]
-    private ?string $keyCode = null;
+    #[ORM\Column(name: '`key`', length: 10, unique: true)]
+    private ?string $key = null;
+
+    #[ORM\OneToMany(mappedBy: 'project', targetEntity: Issue::class, orphanRemoval: true)]
+    private Collection $issues;
 
     #[ORM\ManyToOne(inversedBy: 'leadedProjects')]
     #[ORM\JoinColumn(nullable: false)]
-    private ?User $leadUser = null;
+    private ?User $lead = null;
 
-    /**
-     * @var Collection<int, User>
-     */
     #[ORM\ManyToMany(targetEntity: User::class, inversedBy: 'projects')]
-    private Collection $members;
-
-    /**
-     * @var Collection<int, Issue>
-     */
-    #[ORM\OneToMany(targetEntity: Issue::class, mappedBy: 'project')]
-    private Collection $issues;
+    private Collection $people;
 
     public function __construct()
     {
-        $this->members = new ArrayCollection();
         $this->issues = new ArrayCollection();
+        $this->people = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -64,50 +58,14 @@ class Project
         return $this;
     }
 
-    public function getKeyCode(): ?string
+    public function getKey(): ?string
     {
-        return $this->keyCode;
+        return $this->key;
     }
 
-    public function setKeyCode(string $keyCode): static
+    public function setKey(string $key): static
     {
-        $this->keyCode = $keyCode;
-
-        return $this;
-    }
-
-    public function getLeadUser(): ?User
-    {
-        return $this->leadUser;
-    }
-
-    public function setLeadUser(?User $leadUser): static
-    {
-        $this->leadUser = $leadUser;
-
-        return $this;
-    }
-
-    /**
-     * @return Collection<int, User>
-     */
-    public function getMembers(): Collection
-    {
-        return $this->members;
-    }
-
-    public function addMember(User $member): static
-    {
-        if (!$this->members->contains($member)) {
-            $this->members->add($member);
-        }
-
-        return $this;
-    }
-
-    public function removeMember(User $member): static
-    {
-        $this->members->removeElement($member);
+        $this->key = $key;
 
         return $this;
     }
@@ -140,5 +98,46 @@ class Project
         }
 
         return $this;
+    }
+
+    public function getLead(): ?User
+    {
+        return $this->lead;
+    }
+
+    public function setLead(?User $lead): static
+    {
+        $this->lead = $lead;
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, User>
+     */
+    public function getPeople(): Collection
+    {
+        return $this->people;
+    }
+
+    public function addPerson(User $person): static
+    {
+        if (!$this->people->contains($person)) {
+            $this->people->add($person);
+        }
+
+        return $this;
+    }
+
+    public function removePerson(User $person): static
+    {
+        $this->people->removeElement($person);
+
+        return $this;
+    }
+
+    public function __toString()
+    {
+        return $this->name;
     }
 }
